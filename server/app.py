@@ -4,7 +4,7 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from models import db, Workout
-from schemas import WorkoutSchema
+from schemas import WorkoutSchema, WorkoutDetailSchema
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -15,6 +15,7 @@ migrate = Migrate(app, db)
 
 workout_schema = WorkoutSchema()
 workouts_schema = WorkoutSchema(many=True)
+workout_detail_schema = WorkoutDetailSchema()
 
 
 @event.listens_for(Engine, "connect")
@@ -29,6 +30,14 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 def get_workouts():
     workouts = Workout.query.all()
     return jsonify(workouts_schema.dump(workouts)), 200
+
+
+@app.route('/workouts/<int:workout_id>', methods=['GET'])
+def get_workout(workout_id):
+    workout = Workout.query.get(workout_id)
+    if workout is None:
+        return jsonify({"error": "Workout not found"}), 404
+    return jsonify(workout_detail_schema.dump(workout)), 200
 
 
 if __name__ == '__main__':
