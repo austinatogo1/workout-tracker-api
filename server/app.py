@@ -3,6 +3,7 @@ from flask_migrate import Migrate
 from marshmallow import ValidationError
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
 
 from models import db, Workout, Exercise
 from schemas import (
@@ -89,6 +90,32 @@ def get_exercise(exercise_id):
     if exercise is None:
         return jsonify({"error": "Exercise not found"}), 404
     return jsonify(exercise_detail_schema.dump(exercise)), 200
+
+
+@app.route('/exercises', methods=['POST'])
+def create_exercise():
+    json_data = request.get_json(silent=True)
+    if json_data is None:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
+    try:
+        data = exercise_schema.load(json_data)
+    except ValidationError as err:
+        return jsonify({"errors": err.messages}), 400
+
+    try:
+        new_exercise = Exercise(**data)
+    except ValueError as err:
+        return jsonify({"error": str(err)}), 400
+
+    db.session.add(new_exercise)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({"error": "An exercise with that name already exists"}), 409
+
+    return jsonify(exercise_schema.dump(new_exercise)), 201
 
 
 if __name__ == '__main__':
