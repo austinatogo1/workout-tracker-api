@@ -8,7 +8,7 @@ class Exercise(db.Model):
     __tablename__ = 'exercises'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    name = db.Column(db.String, unique=True)
     category = db.Column(db.String)
     equipment_needed = db.Column(db.Boolean, default=False)
 
@@ -21,6 +21,9 @@ class Exercise(db.Model):
 
 class Workout(db.Model):
     __tablename__ = 'workouts'
+    __table_args__ = (
+        db.CheckConstraint('duration_minutes >= 0', name='check_duration_minutes_non_negative'),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date)
