@@ -118,5 +118,17 @@ def create_exercise():
     return jsonify(exercise_schema.dump(new_exercise)), 201
 
 
+@app.route('/exercises/<int:exercise_id>', methods=['DELETE'])
+def delete_exercise(exercise_id):
+    exercise = Exercise.query.get(exercise_id)
+    if exercise is None:
+        return jsonify({"error": "Exercise not found"}), 404
+
+    db.session.delete(exercise)
+    db.session.commit()
+
+    return jsonify({"message": f"Exercise {exercise_id} deleted"}), 200
+
+
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
