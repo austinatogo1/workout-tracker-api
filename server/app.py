@@ -1,5 +1,6 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_migrate import Migrate
+from marshmallow import ValidationError
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
@@ -38,6 +39,24 @@ def get_workout(workout_id):
     if workout is None:
         return jsonify({"error": "Workout not found"}), 404
     return jsonify(workout_detail_schema.dump(workout)), 200
+
+
+@app.route('/workouts', methods=['POST'])
+def create_workout():
+    json_data = request.get_json(silent=True)
+    if json_data is None:
+        return jsonify({"error": "Request body must be JSON"}), 400
+
+    try:
+        data = workout_schema.load(json_data)
+    except ValidationError as err:
+        return jsonify({"errors": err.messages}), 400
+
+    new_workout = Workout(**data)
+    db.session.add(new_workout)
+    db.session.commit()
+
+    return jsonify(workout_schema.dump(new_workout)), 201
 
 
 if __name__ == '__main__':
