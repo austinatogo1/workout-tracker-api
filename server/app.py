@@ -5,10 +5,11 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 
-from models import db, Workout, Exercise
+from models import db, Workout, Exercise, WorkoutExercise
 from schemas import (
     WorkoutSchema, WorkoutDetailSchema,
     ExerciseSchema, ExerciseDetailSchema,
+    WorkoutExerciseSchema,
 )
 
 app = Flask(__name__)
@@ -24,6 +25,7 @@ workout_detail_schema = WorkoutDetailSchema()
 exercise_schema = ExerciseSchema()
 exercises_schema = ExerciseSchema(many=True)
 exercise_detail_schema = ExerciseDetailSchema()
+workout_exercise_schema = WorkoutExerciseSchema()
 
 
 @event.listens_for(Engine, "connect")
@@ -128,6 +130,37 @@ def delete_exercise(exercise_id):
     db.session.commit()
 
     return jsonify({"message": f"Exercise {exercise_id} deleted"}), 200
+
+
+@app.route(
+    '/workouts/<int:workout_id>/exercises/<int:exercise_id>/workout_exercises',
+    methods=['POST'],
+)
+def add_exercise_to_workout(workout_id, exercise_id):
+    workout = Workout.query.get(workout_id)
+    if workout is None:
+        return jsonify({"error": "Workout not found"}), 404
+
+    exercise = Exercise.query.get(exercise_id)
+    if exercise is None:
+        return jsonify({"error": "Exercise not found"}), 404
+
+    json_data = request.get_json(silent=True) or {}
+
+    try:
+        data = workout_exercise_schema.load(json_data, partial=True)
+    except ValidationError as err:
+        return jsonify({"errors": err.messages}), 400
+
+    try:
+        new_workout_exercise = WorkoutExercise(workout=workout, exercise=exercise, **data)
+    except ValueError as err:
+        return jsonify({"error": str(err)}), 400
+
+    db.session.add(new_workout_exercise)
+    db.session.commit()
+
+    return jsonify(workout_exercise_schema.dump(new_workout_exercise)), 201
 
 
 if __name__ == '__main__':
