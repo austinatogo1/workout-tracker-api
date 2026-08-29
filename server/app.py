@@ -4,8 +4,8 @@ from marshmallow import ValidationError
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
-from models import db, Workout
-from schemas import WorkoutSchema, WorkoutDetailSchema
+from models import db, Workout, Exercise
+from schemas import WorkoutSchema, WorkoutDetailSchema, ExerciseSchema
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -17,6 +17,8 @@ migrate = Migrate(app, db)
 workout_schema = WorkoutSchema()
 workouts_schema = WorkoutSchema(many=True)
 workout_detail_schema = WorkoutDetailSchema()
+exercise_schema = ExerciseSchema()
+exercises_schema = ExerciseSchema(many=True)
 
 
 @event.listens_for(Engine, "connect")
@@ -69,6 +71,12 @@ def delete_workout(workout_id):
     db.session.commit()
 
     return jsonify({"message": f"Workout {workout_id} deleted"}), 200
+
+
+@app.route('/exercises', methods=['GET'])
+def get_exercises():
+    exercises = Exercise.query.all()
+    return jsonify(exercises_schema.dump(exercises)), 200
 
 
 if __name__ == '__main__':
