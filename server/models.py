@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import validates
 
 db = SQLAlchemy()
 
@@ -14,6 +15,18 @@ class Exercise(db.Model):
 
     workout_exercises = db.relationship('WorkoutExercise', back_populates='exercise')
     workouts = association_proxy('workout_exercises', 'workout')
+
+    @validates('name')
+    def validate_name(self, key, value):
+        if not value or not value.strip():
+            raise ValueError('Exercise name cannot be empty.')
+        return value
+
+    @validates('category')
+    def validate_category(self, key, value):
+        if not value or not value.strip():
+            raise ValueError('Exercise category cannot be empty.')
+        return value
 
     def __repr__(self):
         return f'<Exercise {self.id}: {self.name}>'
@@ -49,6 +62,12 @@ class WorkoutExercise(db.Model):
 
     workout = db.relationship('Workout', back_populates='workout_exercises')
     exercise = db.relationship('Exercise', back_populates='workout_exercises')
+
+    @validates('reps', 'sets', 'duration_seconds')
+    def validate_non_negative(self, key, value):
+        if value is not None and value < 0:
+            raise ValueError(f'{key} cannot be negative.')
+        return value
 
     def __repr__(self):
         return f'<WorkoutExercise {self.id}: workout={self.workout_id} exercise={self.exercise_id}>'
