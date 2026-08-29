@@ -5,7 +5,10 @@ from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
 from models import db, Workout, Exercise
-from schemas import WorkoutSchema, WorkoutDetailSchema, ExerciseSchema
+from schemas import (
+    WorkoutSchema, WorkoutDetailSchema,
+    ExerciseSchema, ExerciseDetailSchema,
+)
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
@@ -19,6 +22,7 @@ workouts_schema = WorkoutSchema(many=True)
 workout_detail_schema = WorkoutDetailSchema()
 exercise_schema = ExerciseSchema()
 exercises_schema = ExerciseSchema(many=True)
+exercise_detail_schema = ExerciseDetailSchema()
 
 
 @event.listens_for(Engine, "connect")
@@ -77,6 +81,14 @@ def delete_workout(workout_id):
 def get_exercises():
     exercises = Exercise.query.all()
     return jsonify(exercises_schema.dump(exercises)), 200
+
+
+@app.route('/exercises/<int:exercise_id>', methods=['GET'])
+def get_exercise(exercise_id):
+    exercise = Exercise.query.get(exercise_id)
+    if exercise is None:
+        return jsonify({"error": "Exercise not found"}), 404
+    return jsonify(exercise_detail_schema.dump(exercise)), 200
 
 
 if __name__ == '__main__':
